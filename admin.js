@@ -1188,7 +1188,7 @@ function getEmailTemplate(p) {
       <td style="background:#050A30;border-radius:16px 16px 0 0;padding:24px 40px;">
         <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
           <td style="text-align:left;vertical-align:middle;">
-            <span style="color:#ffffff;font-size:20px;font-weight:900;letter-spacing:-0.5px;">MERIDIAN <span style="color:#FF8C00;">GLOBAL</span> TRANSIT</span><br>
+            <span style="color:#ffffff;font-size:20px;font-weight:900;letter-spacing:-0.5px;">VELO FREIGHT <span style="color:#FF8C00;">GLOBAL</span></span><br>
             <span style="color:rgba(255,255,255,0.4);font-size:10px;letter-spacing:2px;text-transform:uppercase;">Global Logistics Excellence</span>
           </td>
           <td style="text-align:right;vertical-align:middle;">
@@ -1318,7 +1318,7 @@ function getEmailTemplate(p) {
     <!-- ── FOOTER ── -->
     <tr>
       <td style="background:#050A30;border-radius:0 0 16px 16px;padding:32px 40px;text-align:center;">
-        <p style="margin:0 0 6px;color:#ffffff;font-size:16px;font-weight:900;letter-spacing:-0.3px;">MERIDIAN <span style="color:#FF8C00;">GLOBAL</span> TRANSIT</p>
+        <p style="margin:0 0 6px;color:#ffffff;font-size:16px;font-weight:900;letter-spacing:-0.3px;">VELO FREIGHT <span style="color:#FF8C00;">GLOBAL</span></p>
         <p style="margin:0 0 14px;color:rgba(255,255,255,0.35);font-size:11px;letter-spacing:1px;text-transform:uppercase;">Global Logistics Excellence</p>
         <p style="margin:0 0 12px;color:rgba(255,255,255,0.4);font-size:12px;line-height:1.6;">1400 Logistics Blvd, Houston, TX 77032, United States</p>
         <p style="margin:0;color:rgba(255,255,255,0.25);font-size:11px;">© ${year} Velo Freight Global. All rights reserved. · <a href="https://velofreightglobal.com" style="color:rgba(255,255,255,0.4);text-decoration:none;">velofreightglobal.com</a></p>
@@ -1363,20 +1363,20 @@ async function handleUpdateWithEmail(shipmentData, shouldNotify) {
     toast(`📧 Sending notification email to ${client_email}…`);
 
     try {
-      // Call Supabase Edge Function — Resend API key is a secure server-side secret
-      const res = await fetch(EDGE_FUNCTION_URL, {
+      // Call Vercel serverless function — uses Resend API to deliver emails
+      const emailHtml = getEmailTemplate({ tracking_number, status, status_reason, updated_at: isoDate });
+      const res = await fetch('/api/send-email', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
         },
         body: JSON.stringify({
+          to: client_email,
+          subject: `Shipment Update: ${tracking_number} — ${status}`,
+          html: emailHtml,
           tracking_number,
           status,
-          status_reason: status_reason || '',
           client_email,
-          updated_at: isoDate,
         }),
       });
 
