@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-  // CORS Headers
+  // CORS Headers — allow calls from any origin (Vercel deployed site)
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -15,38 +15,40 @@ export default async function handler(req, res) {
     const emailHtml    = html || htmlBody;
 
     if (!recipient || !emailHtml) {
-      return res.status(400).json({ error: 'Missing required fields' });
+      return res.status(400).json({ error: 'Missing required fields: recipient and html body are required.' });
     }
 
-    // Brevo (Sendinblue) API — reliable, no domain verification issues
-    const BREVO_API_KEY = process.env.BREVO_API_KEY || "PASTE_BREVO_KEY_HERE";
+    // ── Resend API ─────────────────────────────────────────────────────────────
+    const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
-    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
-      method: "POST",
+    const toAddresses = Array.isArray(recipient) ? recipient : [recipient];
+
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
       headers: {
-        "api-key": BREVO_API_KEY,
-        "Content-Type": "application/json"
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        sender: { name: "Velo Freight Global", email: "contact@velofreightglobal.com" },
-        to: Array.isArray(recipient) ? recipient.map(e => ({ email: e })) : [{ email: recipient }],
+        from: 'Velo Freight Global <onboarding@resend.dev>',
+        to: toAddresses,
         subject: emailSubject,
-        htmlContent: emailHtml
+        html: emailHtml
       })
     });
 
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      console.error('[MGT] Brevo Error:', data);
+      console.error('[VFG] Resend Error:', data);
       return res.status(response.status).json({ error: data.message || 'Failed to send email', details: data });
     }
 
-    console.log('[MGT] Email sent via Brevo:', data.messageId);
-    return res.status(200).json({ success: true, id: data.messageId });
+    console.log('[VFG] Email sent via Resend:', data.id);
+    return res.status(200).json({ success: true, id: data.id });
 
   } catch (error) {
-    console.error('[MGT] Server Error:', error);
+    console.error('[VFG] Server Error:', error);
     return res.status(500).json({ error: 'Internal Server Error', message: error.message });
   }
 }
